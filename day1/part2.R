@@ -1,58 +1,94 @@
+# --- Configuration -----------------------------------------------------------
 setwd("day1/")
-puzzle_input <- readLines("puzzle-input.txt")
-print(puzzle_input)
+
+
+args <- commandArgs(trailingOnly = TRUE)
+
+choice <- args[1]
+
+input_file <- switch(choice,
+                     "1" = "puzzle-input.txt",
+                     "2" = "test-input.txt",
+                     stop("Choix invalide. Tape 1 ou 2.")
+)
+
+puzzle_input <- readLines(input_file)
+
+# --- Constantes ---------------------------------------------------------------
 dial_start <- 50
+DIAL_MODULO <- 100
+dial <- 50
+zero_crossings <- 0
+
+# --- Fonctions ----------------------------------------------------------------
+
 is_valid_move <- function(move){
     grepl("^[RL][0-9]+$",move)
 }
-valids <- sapply(puzzle_input, is_valid_move)
-all(valids)
-move_dial <- function(dial, move, number_of_quotient_zero=0) {
-    direction <- substr(move, 1, 1)
-    value <- substr(move, 2, nchar(move))
 
-    if (direction == "R") {
-        before <- dial %/% 100
-        after <- (dial + as.numeric(value)) %/% 100
-        reste <- (dial + as.numeric(value)) %% 100
-        print(paste("before:", before, "dial:",dial, "afterdial:", abs((dial + as.numeric(value)) %% 100), "after:", after, "move:",move, "number_of_quotient_zero:", number_of_quotient_zero))
-        dial <- abs((dial + as.numeric(value)) %% 100)
-        if (before != after) {
-            number_of_quotient_zero <- number_of_quotient_zero + abs(after - before)
-        }
-        else {
-        if (reste == 0) {
-                number_of_quotient_zero <- number_of_quotient_zero + 1
-                print(paste("reste:",0, "number_of_quotient_zero:", number_of_quotient_zero))
-            }
-        }
-    }
-    if (direction == "L") {
-        before <- dial %/% 100
-        after <- (dial - as.numeric(value)) %/% 100
-        reste <- (dial - as.numeric(value)) %% 100
-        print(paste("before:", before, "dial:",dial, "afterdial:", abs((dial - as.numeric(value)) %% 100), "after:", after, "move:",move, "number_of_quotient_zero:", number_of_quotient_zero))
-        dial <- abs((dial - as.numeric(value)) %% 100)
-        if (before != after) {
-            number_of_quotient_zero <- number_of_quotient_zero + abs(after - before)
-        }
-        else {
-            if (reste == 0) {
-                number_of_quotient_zero <- number_of_quotient_zero + 1
-                print(paste("reste:",0, "number_of_quotient_zero:", number_of_quotient_zero))
-            }
-        }
-    }
-    list(
-        dial = dial,
-        number_of_quotient_zeros = number_of_quotient_zero
-    )
+parse_move <- function(move) {
+    direction <- substr(move, 1, 1)
+    value <- as.numeric(substr(move, 2, nchar(move)))
+  list(
+    direction = direction,
+    value = value
+  )
 }
-number_of_quotient_zeros <- 0
+
+compute_moves <- function(dial, move) {
+    m <- parse_move(move)
+    new_dial <- if (m$direction == "R") {
+        dial + m$value
+    } else {
+        dial - m$value
+    }
+    return(dial,new_dial)
+}
+compute_clicks <- function(dial, new_dial) {
+  # Calcul des quotients et restes
+  before_q <- dial %/% DIAL_MODULO
+  after_q  <- new_dial %/% DIAL_MODULO
+  remainder <- new_dial %% DIAL_MODULO
+  
+}
+# Applique un mouvement au cadran
+move_dial <- function(dial, move, zero_crossings) {
+  dial_and_new <- compute_moves(dial, move)
+
+  # Mise à jour du cadran (entre 0 et 99)
+  dial_mod <- abs(remainder)
+  zero_crossing_before=zero_crossings
+
+  # Détection des passages par un multiple de 100
+  if (before_q != after_q) {
+    zero_crossings <- zero_crossings + abs(after_q - before_q)
+  } else if (remainder == 0) {
+    zero_crossings <- zero_crossings + abs(after_q - before_q) 
+  }
+
+  message(sprintf(
+    "move=%s | before=%d | after=%d | dial=%d | before_q=%d | modif_zero=%d | zero_crossings_before=%d | zero_crossings=%d",
+    move, dial, new_dial, dial_mod, before_q, after_q, zero_crossing_before, zero_crossings
+  ))
+
+  list(
+    dial = dial_mod,
+    zero_crossings = zero_crossings
+  )
+}
+
+# --- Validation inputs
+stopifnot(all(sapply(puzzle_input, is_valid_move)))
+
+# --- Résolution 
+ 
+ message(sprintf("Début des mouvements : %s", dial_start))
+
+
 for (move in puzzle_input) {
-    print(dial_start)
-    result <- move_dial(dial_start, move, number_of_quotient_zeros)
-    dial_start <- result$dial
-    number_of_quotient_zeros <- result$number_of_quotient_zeros
+  result <- move_dial(dial, move, zero_crossings)
+  dial <- result$dial
+  zero_crossings <- result$zero_crossings
 }
-print(number_of_quotient_zeros)
+
+print(zero_crossings)
