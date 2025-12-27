@@ -21,3 +21,8 @@ target
 #.idea/
 *.log
 .vscode
+renv/*
+!renv/activate.R
+!renv.lock
+!renv/activate.R
+.Rproj.user
